@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Curve, Vector3 } from 'three';
+import { Curve, Euler, Vector3 } from 'three';
+import { calculateLookAtRotation } from '../../../service/vectorCompute.ts';
 
 export function MoveOnClickWrapper({
                                        children,
                                        callOnStart,
                                        callEvery,
-    everyInterval,
+    everyInterval,duration,
                                        trajectory,
                                        callOnEnd,
                                    }: {
@@ -15,25 +16,26 @@ export function MoveOnClickWrapper({
     callOnStart: () => void;
     callEvery?: (v:Vector3) => void;
     everyInterval?:number
+    duration?:number
     callOnEnd: () => void;
 }) {
-    console.log("rrrr")
     const [position, setPosition] = useState(trajectory.getPointAt(0));
+    const [rotation, setRotation] = useState(new Euler(0,0,0));
     const [isMoving, setIsMoving] = useState(false);
     const [elapsedTime, setElapsedTime] = useState(0);
     const [elapsedIntervalTime, setElapsedIntervalTime] = useState(0);
-console.log("move Pos", position)
+
     useFrame((_, delta) => {
 
         if (isMoving) {
-            console.log("move")
-            const duration = 5; // 5 seconds
+             duration = duration || 20; // 5 seconds
             const newElapsedTime = elapsedTime + delta;
             let newElapsedIntervalTime = elapsedIntervalTime + delta;
             const t = Math.min(newElapsedTime / duration, 1); // Clamp t between 0 and 1
 
             if (trajectory) {
                 const newPosition = trajectory.getPointAt(t)
+              setRotation(calculateLookAtRotation(newPosition, trajectory.getPointAt(t+0.01>1?1:t+0.05)))
 
                 setPosition(newPosition);
                 if(everyInterval && callEvery)
@@ -66,7 +68,7 @@ console.log("move Pos", position)
     };
 
     return (
-        <group position={position} onPointerDown={handleClick}>
+        <group position={position} onPointerDown={handleClick} rotation={rotation}>
             {children}
         </group>
     );

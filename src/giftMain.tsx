@@ -3,9 +3,9 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import './styles/main.css'
 import { KeyboardControls, OrbitControls } from '@react-three/drei';
-import { AnimateSpiralGeometry } from './components/christmasGame/decor/decors.tsx';
 import { Snow } from './components/christmasGame/Snow.tsx';
 import { GiftScene } from './components/christmasGame/gift/GiftScene.tsx';
+import { AnimateSpiralGeometry } from './components/christmasGame/decor/trees.tsx';
 
 function GiftDemo() {
 

@@ -5,7 +5,6 @@ import './styles/main.css'
 import { KeyboardControls, OrbitControls } from '@react-three/drei';
 import { Bouncy } from './components/common/Bouncy.tsx';
 import { IsInteractible } from './components/common/interactiveRender/IsInteractible.tsx';
-import { Ornement, TreeBall } from './components/christmasGame/decor/decors.tsx';
 import FakeGlowMaterial from './components/common/material/FakeGlowMaterial.tsx';
 import Fireworks from './components/common/Fireworks.tsx';
 import { ProgressiveAppear } from './components/common/interactiveRender/ProgressiveAppear.tsx';
@@ -15,6 +14,7 @@ import { Physics, RigidBody } from '@react-three/rapier';
 import { Home } from './components/christmasGame/decor/Home.tsx';
 import { StartZone } from './components/christmasGame/decor/StartZone.tsx';
 import { Wind } from './components/christmasGame/decor/Wind.tsx';
+import { Ornement, TreeBall } from './components/christmasGame/decor/trees.tsx';
 
 extend({Bouncy})
 
@@ -33,8 +33,8 @@ function MainDemo() {
             <Canvas shadows={true}>
                 <OrbitControls></OrbitControls>
                 <spotLight position={[0,3 , 0]} angle={0.3} penumbra={10} intensity={2} castShadow={true}></spotLight>
-<Wind position={new Vector3(1,0,1)}></Wind>
-                <StartZone></StartZone>
+                <Home></Home>
+
             </Canvas>
 
             <img id="screenshot" style={{display: 'none'}}/>

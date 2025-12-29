@@ -4,12 +4,12 @@ import { CapsuleCollider, RapierRigidBody, RigidBody, useRapier, } from "@react-
 import React, { useRef } from "react";
 import * as RAIPER from "@dimforge/rapier3d-compat";
 import * as THREE from "three";
-import { PointLightHelper, Vector3 } from "three";
+import { Euler, PointLightHelper, Vector3 } from "three";
 
 const SPEED = 3;
 const direction = new THREE.Vector3(0, 0, 0);
 
-export function FPSPlayer(props:{position?:Vector3, ref:any}) {
+export function FPSPlayer(props:{position?:Vector3,rotation?:Euler, ref:any}) {
     const position= props.position || new Vector3(0,15,0);
     const bodyRef = useRef<RapierRigidBody>(null);
     const playerCapsuleColliderRef = useRef<RAIPER.Collider>(null);
@@ -51,6 +51,8 @@ export function FPSPlayer(props:{position?:Vector3, ref:any}) {
         if (jump && hit) {
             body.applyImpulse(new THREE.Vector3(0, 9, 0), true);
         }
+
+
     });
 
     return (

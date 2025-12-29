@@ -1,10 +1,10 @@
 import { Canvas } from '@react-three/fiber'
-import React from 'react'
+import React, { Suspense } from 'react'
 import ReactDOM from 'react-dom/client'
 import './styles/main.css'
 import { KeyboardControls } from '@react-three/drei';
 import { ChristmasScene } from './components/christmasGame/christmasScene.tsx';
-
+import { Stats } from '@react-three/drei'
 function Main() {
 
 
@@ -19,8 +19,10 @@ function Main() {
             ]}>
 
             <Canvas camera={{fov:25}} >
+              <Stats></Stats>
+                <Suspense>
                 <ChristmasScene></ChristmasScene>
-
+                </Suspense>
             </Canvas>
 
             <img id="screenshot" style={{display: 'none'}}/>

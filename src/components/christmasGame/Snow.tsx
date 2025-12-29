@@ -3,6 +3,8 @@ import React, { forwardRef, useImperativeHandle, useState } from 'react';
 import { CSG } from 'three-csg-ts';
 import type { ThreeElements } from '@react-three/fiber';
 import { HeightfieldCollider } from '@react-three/rapier';
+import { useTexture } from '@react-three/drei';
+import { hexaSize, labSize } from './constant.tsx';
 
 
 function computeGeometry(geometry: BufferGeometry, computeTopYMethod = (x: number, y: number, z: number) => number) {
@@ -67,8 +69,8 @@ function extractHeightMap(geometry: BufferGeometry, width, width2): number[] {
 export const Snow = forwardRef((props: {} & Omit<ThreeElements['mesh'], 'args'>, ref) => {
     console.log("Render Snow", props.position)
     const [offsetPosition, setOffsetPosition] = React.useState<Vector3>(props.position as Vector3 || new Vector3(0, 0, 0));
-    let width = 50;
-    let width2 = 50;
+    let width = hexaSize*labSize;
+    let width2 = hexaSize*labSize;
     let widthSegments = 20;
     let widthSegments2 = 20;
     const [geometry, setGeometry] = React.useState<BoxGeometry>(new BoxGeometry(width, 1, width2, widthSegments, 2, widthSegments2));
@@ -83,7 +85,7 @@ export const Snow = forwardRef((props: {} & Omit<ThreeElements['mesh'], 'args'>,
             let computedX = 0.0 + x + offsetPosition?.x;
             let computedZ = 0.0 + z + offsetPosition?.z;
             let arg = 0.0 + computedX + (computedZ) / 1.2;
-            let computeY = 0.0+y + Math.sin(arg) + Math.cos(computedZ);
+            let computeY = 0.0+y + Math.sin(arg)/4 + Math.cos(computedZ)/4;
             return computeY;
         }
 
@@ -110,10 +112,11 @@ export const Snow = forwardRef((props: {} & Omit<ThreeElements['mesh'], 'args'>,
 
     useImperativeHandle(ref, () => ({addSnowHole}))
 
+    let snowTexture = useTexture("./snow.jpg");
     return (
         <>
             <mesh geometry={geometry} position={[0, 0, -2]} castShadow receiveShadow>
-                <meshStandardMaterial color={"white"} side={2} transparent={true} opacity={0.8}/>
+                <meshStandardMaterial map={snowTexture} color={"white"} side={2} transparent={true} opacity={1}/>
             </mesh>
             {false && heightMap?.length > 0 ? <HeightfieldCollider  args={[
                 widthSegments -1,

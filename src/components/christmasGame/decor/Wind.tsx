@@ -9,7 +9,7 @@ extend({SmokeMaterial, Smoke});
 export function Wind(props: { position?: Vector3, rotation?: Euler, sizeWind: number }) {
 
     return <group {...props} >
-        <Float floatingRange={[-4,1]}>
+        <Float floatingRange={[-6,3]}>
             <group rotation={[Math.PI / 2, 0, 0]} scale={[props.sizeWind, 1, 2]}>
 
                 <Smoke speed={10} uSpeedRotation={0.1}

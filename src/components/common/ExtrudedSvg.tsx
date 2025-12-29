@@ -23,17 +23,11 @@ const ExtrudedSvg = (props: ExtrudedSvgProps) => {
             }
         },
         customProcessMaterial = (shape: Shape[], shapeIndex: number, svgData: any) => {
-            return
-
-            <meshPhongMaterial
+            return <meshPhongMaterial
                 attach="material"
-
                 color={(svgData.paths[shapeIndex].color.add(new Color(2, 0, 0)))}
-
-
             ></meshPhongMaterial>
-        },
-
+        }
     } = props;
     const svgData = useLoader(SVGLoader, props.svgPath);
     const shapes =

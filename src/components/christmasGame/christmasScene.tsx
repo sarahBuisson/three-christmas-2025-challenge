@@ -1,11 +1,9 @@
-import { Physics, RigidBody } from '@react-three/rapier';
-import { AnimateSpiralGeometry, Drop, Moon, Ornement, } from './decor/decors.tsx';
-import React, { useEffect, useRef } from 'react';
+import { BallCollider, Physics, RigidBody } from '@react-three/rapier';
+import { BackgroundMountains, Moon, } from './decor/decors.tsx';
+import React, { Suspense, useEffect, useRef } from 'react';
 import { Glow } from '../common/shaders/glow/glow.tsx';
 import { extend } from '@react-three/fiber';
-import { CatmullRomCurve3, Euler, Vector3 } from 'three';
-import { Snow2 } from './Snow2.tsx';
-import { Snow } from './Snow.tsx';
+import { CatmullRomCurve3, Color, Euler, Vector3 } from 'three';
 import { Labyrinth } from '../../service/labGenerator.tsx';
 import { Kase2D } from '../../service/tableau.ts';
 import { HexagonalTableauBis } from './service.ts';
@@ -13,14 +11,17 @@ import { MoveOnClickWrapper } from '../common/interactiveRender/MoveOnClick.tsx'
 import { FPSPlayer } from '../common/player/FPSPlayer.tsx';
 import { random } from '../../service/utils.ts';
 import { ProgressiveAppear } from '../common/interactiveRender/ProgressiveAppear.tsx';
-import { Environment } from '@react-three/drei';
-import { IsInteractible } from '../common/interactiveRender/IsInteractible.tsx';
-import { RandomCircleDistribution } from '../common/RandomCircleDistribution.tsx';
+import { Environment, Points, PointMaterial, Point } from '@react-three/drei';
 import { SoundPlayer } from '../common/services/SoundPlayer.tsx';
 import { Home } from './decor/Home.tsx';
 import { StartZone } from './decor/StartZone.tsx';
 import { calculateLookAtRotation } from '../../service/vectorCompute.ts';
 import { Wind } from './decor/Wind.tsx';
+import { CustomNormalMaterial } from '../common/shaders/customNormal/CustomNormalMaterial.tsx';
+import { hexaSize, labSize } from './constant.tsx';
+import { AnimateSpiralGeometry, Ornement } from './decor/trees.tsx';
+import { DistanceDisplayWrapper } from '../common/DistanceDisplayWrapper.tsx';
+import FakeGlowMaterial from '../common/material/FakeGlowMaterial.tsx';
 
 extend({Glow})
 
@@ -42,7 +43,7 @@ class ChrisKase extends Kase2D {
 }
 
 let kses: Kase2D[][] = [];
-let labSize = 10;
+
 for (let i = -labSize / 2; i < labSize / 2; i++) {
     kses[i] = []
     for (let j = -labSize / 2; j < labSize / 2; j++) {
@@ -53,60 +54,77 @@ let l = new Labyrinth(new HexagonalTableauBis(kses));
 let kaseStart = random(l.tableau.allKases() as ChrisKase[]);
 l.connectCorridor(kaseStart);
 let kaseEnd = l.getCulDeSacs().find((kase) => kase !== kaseStart);
-const hexaSize = 30;
+
 
 function kaseToVector(kase: Kase2D) {
     return new Vector3(kase.x * hexaSize, 0, (kase.x * 0.5 + kase.y) * hexaSize);
 }
 
 export function ChristmasScene() {
-
-    const [previousPrint, setPreviousPrint] = React.useState<Vector3>();
-    const snowRef = React.useRef<any | undefined>(null);
-    const [content, setContent] = React.useState<JSX.Element[] | null>(null);
     const [contentMap, setContentMap] = React.useState<Map<string, JSX.Element>>(new Map());
 
     const soundPlayerRef = useRef<{ playSound: (url: string) => void, stopSound: (url: string) => void }>(null);
     const playerRef = useRef<{ playSound: (url: string) => void, stopSound: (url: string) => void }>(null);
 
-    // debut partie neige
-    function playerMove(position: Vector3, direction: Vector3) {
-        console.log("Player moved to:", position);
-        if (!previousPrint || position.distanceTo(previousPrint) > 0.5) {
-            console.log("Player position:", position, snowRef);
 
-            setPreviousPrint(position);
-            snowRef.current?.addSnowHole([position.x, position.y, position.z], 1);
-        }
-    }
-
-    let snow = <Snow2 ref={snowRef} heightField={snowheightField} scale={20} position={new Vector3(0, -30, 0)}></Snow2>;
-    snow = <Snow ref={snowRef}></Snow>;
 //fin partie neige
 
     // debut partie labyrinth
-    function addToContent(toAdd) {
-        console.log("add", toAdd)
-        setContent((oldContent) => {
-            return (oldContent || []).concat([toAdd]);
-        })
-        if (toAdd.props.position) {
-            contentMap.set(toAdd.props.position.toString(), toAdd)
-        }else if(toAdd.key){
-            contentMap.set(toAdd.key, toAdd)
+    function addToContent(toAdd: any, key?: string, replaceIfExists = true) {
+let computedKey = key;
+        if (!computedKey)
+           if (toAdd.key) {
+               computedKey=toAdd.key
+            }else  if (toAdd.props.position) {
+               computedKey = toAdd.props.position.x + "/" + toAdd.props.position.y + "/" + toAdd.props.position.z;
+           } else{
+               computedKey="key"+Math.random()
+           }
+
+        if (replaceIfExists) {
+            contentMap.set(computedKey, toAdd)
+        } else {
+            if (!contentMap.has(computedKey)) {
+                contentMap.set(computedKey, toAdd)
+            }
         }
         setContentMap((oldMap) => {
 
             const newMap = new Map(oldMap)
-
-            if (toAdd.props.position) {
-                newMap.set(toAdd.props.position, toAdd)
-            }else if(toAdd.key){
-                newMap.set(toAdd.key, toAdd)
+            if (replaceIfExists) {
+                newMap.set(computedKey, toAdd)
+            } else {
+                if (!newMap.has(computedKey)) {
+                    newMap.set(computedKey, toAdd)
+                }
             }
+            return newMap;
+        })
+    }
+
+    function removeToContent(toRemove) {
+        console.log("remove", toRemove)
+
+        const key = contentMap.entries().filter(([k, v]) => v === toRemove).next().value?.[0];
+        removeKeyToContent(key)
+    }
+
+    function removeKeyToContent(key: string) {
+
+console.log("remove", key)
+        setContentMap((oldMap) => {
+
+            const newMap = new Map(oldMap)
+
+
+            newMap.delete(key)
+            oldMap.delete(key)
+
 
             return newMap;
         })
+        contentMap.delete(key)
+
     }
 
     function computeBallsOfKase(kase: Kase2D, points: Vector3[]) {
@@ -119,59 +137,73 @@ export function ChristmasScene() {
             let computeBallPosition: Vector3 = new Vector3()// kaseToVector(kase).add(computeSpiralPoint(points,turns, radius, offset, height))
 
             computeBallPosition = kaseToVector(kase).add(directionConnection)//.add(new Vector3(0, 2, 0))
-            if (points.length > 2){
-                computeBallPosition = kaseToVector(kase).add(random(points))
+            if (points.length > 2) {
+                console.log("use points")
+                computeBallPosition = kaseToVector(kase).add(random(points)).add(new Vector3(0, 0.52, 0))
+            } else {
+                console.error("dont use points", points)
             }
 
 
-            let trajectory = new CatmullRomCurve3([computeBallPosition, computeBallPosition.clone().add(new Vector3(0, 2, 0)), kaseToVector(connection).add(new Vector3(0, 1, 0))]);
+            let trajectory = new CatmullRomCurve3([computeBallPosition, computeBallPosition.clone().add(new Vector3(0, 1, 0)), kaseToVector(connection).add(new Vector3(0, 1, 0))]);
 
-            return <group key={"ball"+computeBallPosition.x+"/"+computeBallPosition.y+"/"+computeBallPosition.z}>
+            let keyBall = "ball" + computeBallPosition.x + "/" + computeBallPosition.y + "/" + computeBallPosition.z;
+            return <group
+                key={keyBall}>
 
-                        <MoveOnClickWrapper
-                                            trajectory={trajectory}
-
-
-                                            callOnStart={() => {
-                                                connection.discovered = true;
-                                                soundPlayerRef.current?.playSound("./sound/firecracker.wav");
-                                            }}
-everyInterval={1}
-                                            callEvery={(currentPos)=>{
-                                                console.log("drop")
-                                                    addToContent(<RigidBody position={currentPos} rotation={new Euler(0, Math.random(),0)}>
-                                                   <Drop ></Drop></RigidBody>)
-                                            }}
-                                            callOnEnd={() => {
-                                                connection.discovered = true;
-                                                console.log("call on end")
-                                                addToContent(generateTree(connection));
-                                                soundPlayerRef.current?.playSound("./sound/firecracker.wav");
-                                            }}
-
-                        >
-                            <ProgressiveAppear>
-                                <group scale={0.3}>
-                                    <Ornement></Ornement>
-
-                                </group>
-                            </ProgressiveAppear>
-                        </MoveOnClickWrapper>
+                <MoveOnClickWrapper
+                    trajectory={trajectory}
 
 
-               </group>
-        }).filter(it=>it!=null)
+                    callOnStart={() => {
+                        connection.discovered = true;
+                        soundPlayerRef.current?.playSound("./sound/firecracker.wav");
+                    }}
+                    everyInterval={0.8}
+                    callEvery={(currentPos) => {
+                        addToContent(<RigidBody position={currentPos.add(new Vector3(Math.random()*0.1, 0, Math.random()))}
+                                                rotation={new Euler(0, Math.random()*Math.PI*2, 0)} linearVelocity={[0,2,0]}
+                                                scale={0.5} key={keyBall + "particle" + Math.random()} >
+                            <BallCollider args={[0.1]}/>
+                            <mesh>
+                                <sphereGeometry args={[0.1, 16, 16]}></sphereGeometry>
+                                <meshStandardMaterial color={"white"}></meshStandardMaterial>
+                                <FakeGlowMaterial glowColor={"cyan"} opacity={0.5} ></FakeGlowMaterial>
+                            </mesh>
+                        </RigidBody>)
+                    }}
+                    callOnEnd={() => {
+                        connection.discovered = true;
+                        console.log("call on end")
+                        let tree = generateTree(connection);
+                        addToContent(tree);
+                        removeKeyToContent(keyBall)
+                        soundPlayerRef.current?.stopSound("./sound/firecracker.wav");
+                    }}
+
+                >
+                    <ProgressiveAppear>
+                        <group scale={1}>
+                            <Ornement key={kase.positionKey() + "ornement" + index}></Ornement>
+
+                        </group>
+                    </ProgressiveAppear>
+                </MoveOnClickWrapper>
+
+
+            </group>
+        }).filter(it => it != null)
     }
 
     function generateTree(kase: Kase2D) {
         console.log("generateTree", kase)
-        return <AnimateSpiralGeometry
+        return <DistanceDisplayWrapper position={kaseToVector(kase).add(new Vector3(0, 1, 0))}><AnimateSpiralGeometry
             radius={1.2} height={2.4} turns={4}
 
-            position={kaseToVector(kase).add(new Vector3(0, 1, 0))}
+
             onAnimateComplete={(points) => {
                 let balls = computeBallsOfKase(kase, points);
-                console.log("balls",balls)
+                console.log("balls", balls)
                 balls.forEach(addToContent)
                 soundPlayerRef.current?.stopSound("./sound/firecracker.wav");
 
@@ -180,7 +212,7 @@ everyInterval={1}
             onAnimateStart={() => {
                 soundPlayerRef.current?.playSound("./sound/firecracker.wav");
             }}
-        ></AnimateSpiralGeometry>;
+        ></AnimateSpiralGeometry></DistanceDisplayWrapper>;
     }
 
     function initScene() {
@@ -195,34 +227,34 @@ everyInterval={1}
             l.tableau.neighbors(kase).forEach((neighbor) => {
                 let neiPos = kaseToVector(neighbor!!);
                 const computedPosition = (neiPos.add(kasePosition)).multiplyScalar(0.5);
-                console.log(computedPosition)
                 if (!kase.connections.includes(neighbor.positionKey())) {
-                    const wind =<Wind position={computedPosition}
-                                      sizeWind={hexaSize/3}
-                                      rotation={calculateLookAtRotation(kasePosition, neiPos)}></Wind>
-                    addToContent(wind)
+                    if (Math.random() > 0.5) {
+                        const wind = <DistanceDisplayWrapper position={computedPosition}>
+                            <Wind sizeWind={hexaSize / 3}
+                                  rotation={calculateLookAtRotation(kasePosition, neiPos)}></Wind>
+                        </DistanceDisplayWrapper>
+                        addToContent(wind);
+
+                    }
                 } else {
                     if (!neighbor) {
                         console.error("no nei", kase);
                         return
                     }
-                    console.warn("wind")
 
 
                 }
             })
         })
-        console.log("fin initScene", contentMap)
     }
 
     useEffect(initScene, [])
     //fin partie labyrinth
-    console.log(contentMap)
     return <>
         <SoundPlayer ref={soundPlayerRef}/>
 
         <Environment background files="mountainNight.jpg"/>
-        <fogExp2 attach="fog" color="darkblue" density={0.05} />
+        <fogExp2 attach="fog" color="darkblue" density={0.05}/>
         <ambientLight intensity={0.2}></ambientLight>
 
         <pointLight intensity={1.5} position={[0, 25, 0]} castShadow></pointLight>
@@ -246,32 +278,22 @@ everyInterval={1}
 
             </RigidBody>
             {contentMap.values()}
-            <FPSPlayer position={kaseToVector(kaseStart).add(new Vector3(2, 5, 0))} ref={playerRef}></FPSPlayer>
+            <FPSPlayer position={kaseToVector(kaseStart).add(new Vector3(2, 4, 3))}
+                       ref={playerRef}></FPSPlayer>
 
 
         </Physics>
-        <StartZone position={kaseToVector(kaseStart)}></StartZone>
-        <RandomCircleDistribution position={new Vector3(0, 0, 0)}
-
-                                  radius={hexaSize * labSize}
-                                  count={hexaSize * labSize / 2}>
-            <mesh>
-                <octahedronGeometry args={[hexaSize * Math.random() * 2, 0]}></octahedronGeometry>
-            </mesh>
-        </RandomCircleDistribution>
-
-        <RandomCircleDistribution position={new Vector3(0, 0, 0)}
-                                  radius={hexaSize * labSize * 2} count={4}>
-            <mesh>
-                <octahedronGeometry args={[16 + hexaSize * 2, 0]}></octahedronGeometry>
-            </mesh>
-        </RandomCircleDistribution>
+        <Suspense>
+            <StartZone position={kaseToVector(kaseStart)}></StartZone>
+        </Suspense>
+        <BackgroundMountains></BackgroundMountains>
         <Moon position={new Vector3(10, 30, 20)}
               onPointerDown={() => {
-                  console.log("moon cli",playerRef)
+                  console.log("moon cli", playerRef)
                   if (playerRef?.current) playerRef!!.current!!.position!!.y += 1;
               }}>
 
         </Moon>
+
     </>;
 }
